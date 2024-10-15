@@ -27,7 +27,7 @@ app.post('/webhook', async (req, res) => {
 
     // Send data to Airtable
     try {
-      const airtableResponse = await axios.post('https://api.airtable.com/v0/your_base_id/tableneww', {
+      const airtableResponse = await axios.post('https://api.airtable.com/v0/appXwEBSWkI5b6Hos/BIAW api', {
         fields: {
           'Name': name,
           'Payment Status': paymentStatus,
