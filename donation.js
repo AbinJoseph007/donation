@@ -58,3 +58,8 @@ app.post('/webhook', async (req, res) => {
 // Start the server
 const port = process.env.PORT || 3000; // Use environment variable for port
 app.listen(port, () => console.log(`Running webhook listener on port ${port}`));
+
+
+app.get('/', (req, res) => {
+  res.send('This is the Stripe Webhook Server.');
+});
