@@ -4,7 +4,6 @@ const stripe = require('stripe')('sk_test_51Q9sSHE1AF8nzqTaSsnaie0CWSIWxwBjkjZpS
 const axios = require('axios');
 
 const app = express();
-
 app.use(bodyParser.json());
 
 // Root route to indicate the server is running
@@ -12,6 +11,7 @@ app.get('/', (req, res) => {
   res.send('This is the Stripe Webhook Server.');
 });
 
+// Webhook route
 app.post('/webhook', async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const endpointSecret = 'your_stripe_webhook_secret'; // Replace with your actual webhook secret
@@ -25,13 +25,10 @@ app.post('/webhook', async (req, res) => {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-
-    // Extract relevant data from Stripe session
     const name = session.customer_details.name;
     const paymentStatus = session.payment_status;
     const amountPaid = session.amount_total / 100; // Stripe sends in cents
 
-    // Send data to Airtable
     try {
       const airtableResponse = await axios.post('https://api.airtable.com/v0/appXwEBSWkI5b6Hos/BIAW api', {
         fields: {
@@ -56,10 +53,5 @@ app.post('/webhook', async (req, res) => {
 });
 
 // Start the server
-const port = process.env.PORT || 3000; // Use environment variable for port
+const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Running webhook listener on port ${port}`));
-
-
-app.get('/', (req, res) => {
-  res.send('This is the Stripe Webhook Server.');
-});
