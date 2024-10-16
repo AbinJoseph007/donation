@@ -4,8 +4,7 @@
   "description": "",
   "main": "donation.js",
   "scripts": {
-   "start": "node donation.js",
-    
+   "start": "node donation.js"
   },
   "keywords": [],
   "author": "",
