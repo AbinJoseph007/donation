@@ -1,14 +1,20 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const app = express();
 const stripe = require('stripe')('sk_test_51Q9sSHE1AF8nzqTaSsnaie0CWSIWxwBjkjZpStwoFY4RJvrb87nnRnJ3B5vvvaiTJFaSQJdbYX0wZHBqAmY2WI8z00hl0oFOC8');
 const axios = require('axios');
 
+const app = express();
+
 app.use(bodyParser.json());
+
+// Root route to indicate the server is running
+app.get('/', (req, res) => {
+  res.send('This is the Stripe Webhook Server.');
+});
 
 app.post('/webhook', async (req, res) => {
   const sig = req.headers['stripe-signature'];
-  const endpointSecret = 'your_stripe_webhook_secret';
+  const endpointSecret = 'your_stripe_webhook_secret'; // Replace with your actual webhook secret
 
   let event;
   try {
@@ -19,7 +25,7 @@ app.post('/webhook', async (req, res) => {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    
+
     // Extract relevant data from Stripe session
     const name = session.customer_details.name;
     const paymentStatus = session.payment_status;
@@ -45,9 +51,10 @@ app.post('/webhook', async (req, res) => {
       res.status(500).send('Internal Server Error');
     }
   } else {
-    res.status(400).end();
+    res.status(400).send('Event type not handled.');
   }
 });
 
 // Start the server
-app.listen(3000, () => console.log('Running webhook listener on port 3000'));
+const port = process.env.PORT || 3000; // Use environment variable for port
+app.listen(port, () => console.log(`Running webhook listener on port ${port}`));
