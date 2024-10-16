@@ -35,7 +35,7 @@ app.post('/webhook', async (req, res) => {
         }
       }, {
         headers: {
-          Authorization: `Bearer your_airtable_api_key`,
+          Authorization: `Bearer patLvSOR7bLf2fFY2.49aae282bae66338f52438d10e3828a5e54f3c091c8ca2aaa5eaa807cde60be2`,
           'Content-Type': 'application/json'
         }
       });
