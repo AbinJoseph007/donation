@@ -1,8 +1,9 @@
-// Do not expose your API keys directly like this in production!
 const STRIPE_API_KEY = 'sk_test_51Q9sSHE1AF8nzqTaSsnaie0CWSIWxwBjkjZpStwoFY4RJvrb87nnRnJ3B5vvvaiTJFaSQJdbYX0wZHBqAmY2WI8z00hl0oFOC8';
 const AIRTABLE_API_KEY = 'pat5uT8ZjmimQYGG1.8f89f2a5c193be276d2d57afc905617684aa22b377af9acd0ea09d58e4ca61a0';
 const AIRTABLE_BASE_ID = 'appXwEBSWkI5b6Hos';
 const AIRTABLE_TABLE_NAME = 'Donation Payments';
+
+const POLLING_INTERVAL = 5000;
 
 // Fetch the latest data from Stripe
 async function fetchLatestStripeData() {
@@ -15,16 +16,16 @@ async function fetchLatestStripeData() {
             }
         });
         const data = await response.json();
-        console.log('Charges from Stripe:', data);
+        console.log('Latest charge from Stripe:', data.data[0]);
         return data.data[0]; // Return only the latest charge (0th index)
     } catch (error) {
         console.error('Error fetching data from Stripe:', error);
     }
 }
 
-// Fetch the latest record from Airtable
-async function fetchLatestAirtableRecord() {
-    const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}?maxRecords=1&sort[0][field]=CreatedTime&sort[0][direction]=desc`;
+// Fetch all records from Airtable
+async function fetchAllAirtableRecords() {
+    const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}`;
 
     try {
         const response = await fetch(airtableUrl, {
@@ -34,28 +35,25 @@ async function fetchLatestAirtableRecord() {
             }
         });
         const data = await response.json();
-        console.log('Latest record from Airtable:', data);
-        return data.records[0]; // Return the latest record
+        console.log('Records from Airtable:', data.records);
+        return data.records; // Return all records
     } catch (error) {
         console.error('Error fetching data from Airtable:', error);
     }
 }
 
-// Compare Stripe data with Airtable record
-function isSameRecord(latestCharge, airtableRecord) {
-    if (!airtableRecord) return false; // No record in Airtable yet
-
-    const airtableFields = airtableRecord.fields;
-    const amountPaid = (latestCharge.amount / 100).toFixed(2);
-    const paymentStatus = latestCharge.status;
-
-    // Compare fields
-    return airtableFields['Name'] === (latestCharge.billing_details?.name || 'No Name') &&
-           airtableFields['Amount Paid'] === amountPaid &&
-           airtableFields['Payment Status'] === paymentStatus;
+// Compare Stripe data with Airtable records based on Charge ID
+function isSameRecordInAirtable(latestCharge, airtableRecords) {
+    return airtableRecords.some(record => {
+        const fields = record.fields;
+        // Compare by a unique Stripe charge ID without saving it to Airtable
+        return fields['Amount Paid'] === (latestCharge.amount / 100).toFixed(2) &&
+               fields['Name'] === (latestCharge.billing_details?.name || 'No Name') &&
+               fields['Payment Status'] === latestCharge.status;
+    });
 }
 
-// Send the latest charge data to Airtable
+// Send the latest charge data to Airtable (without sending Charge ID)
 async function sendLatestChargeToAirtable(latestCharge) {
     if (!latestCharge) {
         console.log("No latest charge to push to Airtable");
@@ -66,7 +64,7 @@ async function sendLatestChargeToAirtable(latestCharge) {
         fields: {
             "Name": latestCharge.billing_details?.name || 'No Name',
             "Amount Paid": (latestCharge.amount / 100).toFixed(2), // Format as a string
-            "Payment Status": latestCharge.status // Correct casing
+            "Payment Status": latestCharge.status
         }
     };
 
@@ -100,11 +98,29 @@ async function sendLatestChargeToAirtable(latestCharge) {
 // Run the integration
 (async () => {
     const latestStripeData = await fetchLatestStripeData(); // Get the latest charge from Stripe
-    const latestAirtableRecord = await fetchLatestAirtableRecord(); // Get the latest record from Airtable
+    const airtableRecords = await fetchAllAirtableRecords(); // Fetch all records from Airtable
 
-    if (latestStripeData && !isSameRecord(latestStripeData, latestAirtableRecord)) {
-        await sendLatestChargeToAirtable(latestStripeData); // Push only if different
+    if (latestStripeData && !isSameRecordInAirtable(latestStripeData, airtableRecords)) {
+        // If no matching record found, push the latest charge to Airtable
+        await sendLatestChargeToAirtable(latestStripeData);
     } else {
         console.log("Data already exists in Airtable. No need to push.");
     }
 })();
+
+async function pollStripeAndAirtable() {
+    try {
+        // Fetch the latest data from Stripe and Airtable
+        const latestStripeData = await fetchLatestStripeData();
+        const airtableRecords = await fetchAllAirtableRecords(); // Change here
+
+        // Compare and push to Airtable if not the same
+        if (latestStripeData && !isSameRecordInAirtable(latestStripeData, airtableRecords)) { // Change here
+            await sendLatestChargeToAirtable(latestStripeData); // Push only if different
+        } else {
+            console.log("Data already exists in Airtable. No need to push.");
+        }
+    } catch (error) {
+        console.error("Error during polling:", error);
+    }
+}
