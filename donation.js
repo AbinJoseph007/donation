@@ -16,7 +16,8 @@ async function fetchLatestStripeData() {
             }
         });
         const data = await response.json();
-      
+        // console.log('Charges from Stripe:', data);
+
         return data.data[0]; // Return only the latest charge (0th index)
     } catch (error) {
         console.error('Error fetching data from Stripe:', error);
@@ -35,7 +36,8 @@ async function fetchAllAirtableRecords() {
             }
         });
         const data = await response.json();
-        
+        // console.log('Latest record from Airtable:', data);
+
         return data.records; // Return all records
     } catch (error) {
         console.error('Error fetching data from Airtable:', error);
@@ -68,7 +70,7 @@ async function sendLatestChargeToAirtable(latestCharge) {
         }
     };
 
-    console.log('Record to send to Airtable:', record); // Log the record to debug
+    // console.log('Record to send to Airtable:', record); // Log the record to debug
 
     const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}`;
 
@@ -89,7 +91,7 @@ async function sendLatestChargeToAirtable(latestCharge) {
             throw new Error(`Airtable Error: ${JSON.stringify(data)}`);
         }
 
-        console.log('Record created in Airtable:', data.records[0].id);
+        // console.log('Record created in Airtable:', data.records[0].id);
     } catch (error) {
         console.error('Error sending charge to Airtable:', error);
     }
@@ -109,7 +111,7 @@ async function pollStripeAndAirtable() {
           
         }
     } catch (error) {
-        
+        // console.log("Data already exists in Airtable. No need to push.");  
     }
 }
 
