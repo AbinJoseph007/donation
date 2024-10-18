@@ -3,7 +3,7 @@ const AIRTABLE_API_KEY = 'pat5uT8ZjmimQYGG1.8f89f2a5c193be276d2d57afc905617684aa
 const AIRTABLE_BASE_ID = 'appXwEBSWkI5b6Hos';
 const AIRTABLE_TABLE_NAME = 'Donation Payments';
 
-const POLLING_INTERVAL = 5000;
+const POLLING_INTERVAL = 5000; // Poll every 5 seconds
 
 // Fetch the latest data from Stripe
 async function fetchLatestStripeData() {
@@ -16,7 +16,7 @@ async function fetchLatestStripeData() {
             }
         });
         const data = await response.json();
-        console.log('Latest charge from Stripe:', data.data[0]);
+      
         return data.data[0]; // Return only the latest charge (0th index)
     } catch (error) {
         console.error('Error fetching data from Stripe:', error);
@@ -35,7 +35,7 @@ async function fetchAllAirtableRecords() {
             }
         });
         const data = await response.json();
-        console.log('Records from Airtable:', data.records);
+        
         return data.records; // Return all records
     } catch (error) {
         console.error('Error fetching data from Airtable:', error);
@@ -95,19 +95,7 @@ async function sendLatestChargeToAirtable(latestCharge) {
     }
 }
 
-// Run the integration
-(async () => {
-    const latestStripeData = await fetchLatestStripeData(); // Get the latest charge from Stripe
-    const airtableRecords = await fetchAllAirtableRecords(); // Fetch all records from Airtable
-
-    if (latestStripeData && !isSameRecordInAirtable(latestStripeData, airtableRecords)) {
-        // If no matching record found, push the latest charge to Airtable
-        await sendLatestChargeToAirtable(latestStripeData);
-    } else {
-        console.log("Data already exists in Airtable. No need to push.");
-    }
-})();
-
+// Poll Stripe and Airtable every POLLING_INTERVAL
 async function pollStripeAndAirtable() {
     try {
         // Fetch the latest data from Stripe and Airtable
@@ -118,9 +106,12 @@ async function pollStripeAndAirtable() {
         if (latestStripeData && !isSameRecordInAirtable(latestStripeData, airtableRecords)) { // Change here
             await sendLatestChargeToAirtable(latestStripeData); // Push only if different
         } else {
-            console.log("Data already exists in Airtable. No need to push.");
+          
         }
     } catch (error) {
-        console.error("Error during polling:", error);
+        
     }
 }
+
+// Start polling at regular intervals without refreshing the page
+setInterval(pollStripeAndAirtable, POLLING_INTERVAL);
